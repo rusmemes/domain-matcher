@@ -36,7 +36,7 @@ class DomainMatcher private constructor(
                 when (val nextLevelMatcher = matcher.values[part]) {
                     null -> return when {
                         part.length < matcher.levelMinKeySize -> false
-                        else -> matched(part.length - 1, part, matcher.charsMap)
+                        else -> matched(startIndex = part.length - 1, part = part, startLevelMap = matcher.charsMap)
                     }
 
                     else -> when (val nextIndex = index + 1) {
@@ -51,24 +51,30 @@ class DomainMatcher private constructor(
         }
     }
 
-    private tailrec fun matched(index: Int, part: LowCaseString, charsMap: Array<CharEntry?>?): Boolean {
+    private fun matched(startIndex: Int, part: LowCaseString, startLevelMap: Array<CharEntry?>?): Boolean {
 
-        if (charsMap === null) {
-            return true
+        var level = startIndex
+        var charsMap = startLevelMap
+
+        while (true) {
+            if (charsMap === null) {
+                return true
+            }
+
+            val c = part[level]
+            val charEntry = charsMap[c.code - 'a'.code]
+            if (charEntry === null) {
+                return false
+            }
+
+            val nextLevel = level - 1
+            if (nextLevel < 0) {
+                return false
+            }
+
+            level = nextLevel
+            charsMap = charEntry.arr
         }
-
-        val c = part[index]
-        val charEntry = charsMap[c.code - 'a'.code]
-        if (charEntry === null) {
-            return false
-        }
-
-        val nextLevel = index - 1
-        if (nextLevel < 0) {
-            return false
-        }
-
-        return matched(nextLevel, part, charEntry.arr)
     }
 
     interface Cache {
