@@ -84,22 +84,22 @@ class DomainMatcher private constructor(
 
         private fun String.clear(): String {
 
-            var startIndex = when {
+            var index = when {
                 startsWith("http://", ignoreCase = true) -> 7
                 startsWith("https://", ignoreCase = true) -> 8
                 else -> 0
             }
 
-            if (get(startIndex).isW() && get(startIndex + 1).isW() && get(startIndex + 2).isW() && get(startIndex + 3) == '.') {
-                startIndex += 4
+            if (get(index).isW() && get(index + 1).isW() && get(index + 2).isW() && get(index + 3) == '.') {
+                index += 4
             }
 
-            return drop(startIndex)
+            return drop(index)
                 .dropLastWhile { !it.isLetterOrDigit() }
                 .takeWhile { it != '/' }
                 .apply {
                     if (any {
-                            !(it.isDigit() || (it.isLetter() && it in 'A'..'z') || it == '.')
+                            !(it in 'A'..'z' || it == '.' || it.isDigit())
                         }) throw IllegalArgumentException("wrong url $this")
                 }
         }
@@ -211,9 +211,7 @@ class DomainMatcher private constructor(
 
                     val lowerCased = substring(startIndex, index).lowerCased()
 
-                    if (lowerCased.any {
-                            !(it.isDigit() || (it.isLetter() && it in 'A'..'z') || it == '.')
-                        }) {
+                    if (lowerCased.any { !(it in 'a'..'z' || it == '.') || it.isDigit() }) {
                         throw IllegalArgumentException("wrong url $this")
                     }
 
@@ -228,9 +226,7 @@ class DomainMatcher private constructor(
 
             val lowerCased = substring(startIndex, index).lowerCased()
 
-            if (lowerCased.any {
-                    !(it.isDigit() || (it.isLetter() && it in 'A'..'z') || it == '.')
-                }) {
+            if (lowerCased.any { !(it in 'a'..'z' || it == '.' || it.isDigit()) }) {
                 throw IllegalArgumentException("wrong url $this")
             }
 
