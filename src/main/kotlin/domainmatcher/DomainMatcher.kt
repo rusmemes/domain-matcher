@@ -105,7 +105,7 @@ class DomainMatcher private constructor(
                 .takeWhile { it != '/' }
                 .apply {
                     if (any {
-                            !(it in 'A'..'z' || it == '.' || it.isDigit())
+                            !(it in 'a'..'z' || it == '.' || it.isDigit() || it in 'A'..'Z')
                         }) throw IllegalArgumentException("wrong url $this")
                 }
         }
@@ -256,5 +256,3 @@ class DomainMatcher private constructor(
         private class CharEntry(val arr: Array<CharEntry?>? = null)
     }
 }
-
-
