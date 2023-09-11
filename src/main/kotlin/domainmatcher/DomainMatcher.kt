@@ -104,9 +104,7 @@ class DomainMatcher private constructor(
                 .dropLastWhile { !it.isLetterOrDigit() }
                 .takeWhile { it != '/' }
                 .apply {
-                    if (any {
-                            !(it in 'a'..'z' || it == '.' || it.isDigit() || it in 'A'..'Z')
-                        }) throw IllegalArgumentException("wrong url $this")
+                    require(all { it in 'a'..'z' || it == '.' || it.isDigit() || it in 'A'..'Z' })
                 }
         }
 
@@ -204,7 +202,7 @@ class DomainMatcher private constructor(
             }
 
             var c = get(startIndex)
-            if (!c.isLetterOrDigit()) throw IllegalArgumentException("wrong url $this")
+            require(c.isLetterOrDigit())
 
             if (c.isW() && get(startIndex + 1).isW() && get(startIndex + 2).isW() && get(startIndex + 3) == '.') {
                 startIndex += 4
@@ -216,10 +214,7 @@ class DomainMatcher private constructor(
                 if (c == '.') {
 
                     val lowerCased = substring(startIndex, index).lowerCased()
-
-                    if (lowerCased.any { !(it in 'a'..'z' || it == '.') || it.isDigit() }) {
-                        throw IllegalArgumentException("wrong url $this")
-                    }
+                    require(lowerCased.all { it in 'a'..'z' || it == '.' || it.isDigit() })
 
                     parts.push(lowerCased)
 
@@ -231,10 +226,7 @@ class DomainMatcher private constructor(
             }
 
             val lowerCased = substring(startIndex, index).lowerCased()
-
-            if (lowerCased.any { !(it in 'a'..'z' || it == '.' || it.isDigit()) }) {
-                throw IllegalArgumentException("wrong url $this")
-            }
+            require(lowerCased.all { it in 'a'..'z' || it == '.' || it.isDigit() })
 
             parts.push(lowerCased)
 
