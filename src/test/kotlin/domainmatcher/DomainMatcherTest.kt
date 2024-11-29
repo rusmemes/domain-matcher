@@ -1,18 +1,39 @@
 package domainmatcher
 
 import org.junit.Test
-import java.util.UUID
+import java.util.*
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class DomainMatcherTest {
 
     @Test
+    fun test0() {
+        val matcher = DomainMatcher.create(
+            listOf(
+                "A-b-Cd.cale-ndar-.go-ogle.cOm"
+            )
+        )
+        assertTrue(matcher matched "a-b-cd.cale-ndar-.go-ogle.com")
+        assertTrue(matcher matched "-a-b-cd.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "-b-cd.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "b-cd.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "-cd.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "cd.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "-d.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "d.cale-ndar-.go-ogle.com")
+        assertFalse(matcher matched "cale-ndar.go-ogle.com")
+    }
+
+    @Test
     fun test1() {
-        val matcher = DomainMatcher.create(listOf(
-            "AbCd.calendar.google.cOm"
-        ))
+        val matcher = DomainMatcher.create(
+            listOf(
+                "AbCd.calendar.google.cOm"
+            )
+        )
         assertTrue(matcher matched "abcd.calendar.google.com")
+        assertTrue(matcher matched "1abcd.calendar.google.com")
         assertFalse(matcher matched "bcd.calendar.google.com")
         assertFalse(matcher matched "cd.calendar.google.com")
         assertFalse(matcher matched "d.calendar.google.com")
@@ -21,10 +42,12 @@ class DomainMatcherTest {
 
     @Test
     fun test2() {
-        val matcher = DomainMatcher.create(listOf(
-            "CAlEnDaR.calendar.google.cOm",
-            "alEnDaR.calendar.google.cOm",
-        ))
+        val matcher = DomainMatcher.create(
+            listOf(
+                "CAlEnDaR.calendar.google.cOm",
+                "alEnDaR.calendar.google.cOm",
+            )
+        )
         assertTrue(matcher matched "CAlEnDaR.calendar.google.cOm")
         assertTrue(matcher matched "alEnDaR.calendar.google.cOm")
         assertTrue(matcher matched "superalEnDaR.calendar.google.cOm")
@@ -33,9 +56,11 @@ class DomainMatcherTest {
 
     @Test
     fun test3() {
-        val matcher = DomainMatcher.create(listOf(
-            "car.google.cOm"
-        ))
+        val matcher = DomainMatcher.create(
+            listOf(
+                "car.google.cOm"
+            )
+        )
         assertTrue(matcher matched "car.google.Com")
         assertTrue(matcher matched "supercar.google.coM")
         assertFalse(matcher matched "r.google.cOm")
@@ -75,6 +100,30 @@ class DomainMatcherTest {
         ).forEach {
             assertTrue(matcher matched it, "failed to match $it")
         }
+    }
+
+    @Test
+    fun testCorrectUrl1() {
+        val matcher = DomainMatcher.create(
+            listOf(
+                "blabla.com",
+            )
+        )
+
+        assertTrue(matcher matched "https://blabla.com")
+        assertFalse(matcher matched "https://bla-bla.com")
+    }
+
+    @Test
+    fun testCorrectUrl2() {
+        val matcher = DomainMatcher.create(
+            listOf(
+                "bla-bla.com",
+            )
+        )
+
+        assertFalse(matcher matched "https://blabla.com")
+        assertTrue(matcher matched "https://bla-bla.com")
     }
 
     @Test(expected = IllegalArgumentException::class)
@@ -117,5 +166,31 @@ class DomainMatcherTest {
         val matcher = DomainMatcher.create(emptyList())
 
         matcher matched "https:/blabla.com"
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testWrongUrl7() {
+        val matcher = DomainMatcher.create(emptyList())
+
+        matcher matched "http-s://blabla.com"
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testWrongUrl8() {
+        val matcher = DomainMatcher.create(emptyList())
+
+        matcher matched "-https://blabla.com"
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testWrongUrl9() {
+        val matcher = DomainMatcher.create(emptyList())
+
+        matcher matched "https://\$blabla.com"
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun testWrongUrl10() {
+        DomainMatcher.create(listOf("\$blabla.com"))
     }
 }

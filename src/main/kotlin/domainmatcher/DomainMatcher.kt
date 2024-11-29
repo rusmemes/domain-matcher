@@ -1,15 +1,14 @@
 package domainmatcher
 
 import domainmatcher.DomainMatcher.Companion.LowCaseString.Companion.lowerCased
-import java.util.LinkedList
-import java.util.TreeSet
+import java.util.*
 import kotlin.math.min
 
-private const val CHARS_MAP_SIZE = 25
+private const val CHARS_MAP_SIZE = 26
 
 /**
  * Tool to block/allow domains.
- * Works with domains written only with numbers or ASCII letters.
+ * Works with domains written only with numbers, '-' or ASCII letters.
  * */
 class DomainMatcher private constructor(
     private val levelMinKeySize: Int = 0,
@@ -62,7 +61,7 @@ class DomainMatcher private constructor(
             }
 
             val c = part[level]
-            val charEntry = charsMap[c.code - 'a'.code]
+            val charEntry = charsMap[getCharsMapCodeBySymbol(c)]
             if (charEntry === null) {
                 return false
             }
@@ -104,7 +103,9 @@ class DomainMatcher private constructor(
                 .dropLastWhile { !it.isLetterOrDigit() }
                 .takeWhile { it != '/' }
                 .apply {
-                    require(all { it in 'a'..'z' || it == '.' || it.isDigit() || it in 'A'..'Z' })
+                    require(all {
+                        it in 'a'..'z' || it == '.' || it.isDigit() || it == '-' || it in 'A'..'Z'
+                    })
                 }
         }
 
@@ -164,7 +165,7 @@ class DomainMatcher private constructor(
         ): Array<CharEntry?> {
 
             val c = part[index]
-            val code = c.code - 'a'.code
+            val code = getCharsMapCodeBySymbol(c)
             var charEntry = charsMap[code]
 
             if (charEntry == null) {
@@ -198,11 +199,12 @@ class DomainMatcher private constructor(
                     get(4) == 's' && get(5) == ':' && get(6) == '/' && get(7) == '/' -> 8
                     else -> throw IllegalArgumentException("wrong url $this")
                 }
+
                 else -> 0
             }
 
             var c = get(startIndex)
-            require(c.isLetterOrDigit())
+            require(c.isLetterOrDigit() || c == '-')
 
             if (c.isW() && get(startIndex + 1).isW() && get(startIndex + 2).isW() && get(startIndex + 3) == '.') {
                 startIndex += 4
@@ -214,7 +216,7 @@ class DomainMatcher private constructor(
                 if (c == '.') {
 
                     val lowerCased = substring(startIndex, index).lowerCased()
-                    require(lowerCased.all { it in 'a'..'z' || it == '.' || it.isDigit() })
+                    require(lowerCased.all { it in 'a'..'z' || it == '.' || it == '-' || it.isDigit() })
 
                     parts.push(lowerCased)
 
@@ -226,12 +228,19 @@ class DomainMatcher private constructor(
             }
 
             val lowerCased = substring(startIndex, index).lowerCased()
-            require(lowerCased.all { it in 'a'..'z' || it == '.' || it.isDigit() })
+            require(lowerCased.all { it in 'a'..'z' || it == '.' || it == '-' || it.isDigit() })
 
             parts.push(lowerCased)
 
             return parts
         }
+
+        private val specialCharToCode = mapOf(
+            '-' to 25,
+        )
+
+        private fun getCharsMapCodeBySymbol(c: Char): Int =
+            if (c in 'a'..'z') (c.code - 'a'.code) else specialCharToCode.getValue(c)
 
         @JvmInline
         value class LowCaseString private constructor(
