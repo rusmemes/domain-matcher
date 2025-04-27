@@ -1,6 +1,5 @@
 package domainmatcher
 
-import domainmatcher.DomainMatcher.Companion.LowCaseString.Companion.lowerCased
 import java.util.*
 import kotlin.math.min
 
@@ -12,7 +11,7 @@ private const val CHARS_MAP_SIZE = 26
  * */
 class DomainMatcher private constructor(
     private val levelMinKeySize: Int = 0,
-    private val values: Map<LowCaseString, DomainMatcher> = emptyMap(),
+    private val values: Map<String, DomainMatcher> = emptyMap(),
     private val charsMap: Array<CharEntry?> = arrayOfNulls(CHARS_MAP_SIZE),
     private val cache: Cache? = null
 ) {
@@ -23,7 +22,7 @@ class DomainMatcher private constructor(
         }
     }
 
-    private fun matched(urlPartsReversed: List<LowCaseString>): Boolean {
+    private fun matched(urlPartsReversed: List<String>): Boolean {
 
         var matcher = this
         var index = 0
@@ -50,7 +49,7 @@ class DomainMatcher private constructor(
         }
     }
 
-    private fun matched(startIndex: Int, part: LowCaseString, startLevelMap: Array<CharEntry?>?): Boolean {
+    private fun matched(startIndex: Int, part: String, startLevelMap: Array<CharEntry?>?): Boolean {
 
         var level = startIndex
         var charsMap = startLevelMap
@@ -77,8 +76,8 @@ class DomainMatcher private constructor(
     }
 
     interface Cache {
-        operator fun get(url: String): List<LowCaseString>?
-        operator fun set(url: String, value: List<LowCaseString>)
+        operator fun get(url: String): List<String>?
+        operator fun set(url: String, value: List<String>)
     }
 
     companion object {
@@ -102,11 +101,7 @@ class DomainMatcher private constructor(
             return drop(index)
                 .dropLastWhile { !it.isLetterOrDigit() }
                 .takeWhile { it != '/' }
-                .apply {
-                    require(all {
-                        it in 'a'..'z' || it == '.' || it.isDigit() || it == '-' || it in 'A'..'Z'
-                    })
-                }
+                .apply { require(all { it.isCorrectUrlSymbol() }) }
         }
 
         @JvmStatic
@@ -132,7 +127,7 @@ class DomainMatcher private constructor(
             return matcher
         }
 
-        private fun addPartToMatcher(index: Int, parts: List<LowCaseString>, matcher: DomainMatcher): DomainMatcher {
+        private fun addPartToMatcher(index: Int, parts: List<String>, matcher: DomainMatcher): DomainMatcher {
             val part = parts[index]
             return DomainMatcher(
                 levelMinKeySize = when (val curr = matcher.levelMinKeySize) {
@@ -158,11 +153,7 @@ class DomainMatcher private constructor(
             )
         }
 
-        private fun addCharToCharsMap(
-            index: Int,
-            part: LowCaseString,
-            charsMap: Array<CharEntry?>
-        ): Array<CharEntry?> {
+        private fun addCharToCharsMap(index: Int, part: String, charsMap: Array<CharEntry?>): Array<CharEntry?> {
 
             val c = part[index]
             val code = getCharsMapCodeBySymbol(c)
@@ -191,12 +182,12 @@ class DomainMatcher private constructor(
             return this == 'w' || this == 'W'
         }
 
-        private fun String.urlPartsReversed(): List<LowCaseString> {
+        private fun String.urlPartsReversed(): List<String> {
 
             var startIndex = when {
                 startsWith("http", ignoreCase = true) -> when {
                     get(4) == ':' && get(5) == '/' && get(6) == '/' -> 7
-                    get(4) == 's' && get(5) == ':' && get(6) == '/' && get(7) == '/' -> 8
+                    (get(4) == 's' || get(4) == 'S') && get(5) == ':' && get(6) == '/' && get(7) == '/' -> 8
                     else -> throw IllegalArgumentException("wrong url $this")
                 }
 
@@ -210,15 +201,15 @@ class DomainMatcher private constructor(
                 startIndex += 4
             }
 
-            val parts = LinkedList<LowCaseString>()
+            val parts = LinkedList<String>()
             var index = startIndex
             while (c != '/') {
                 if (c == '.') {
 
-                    val lowerCased = substring(startIndex, index).lowerCased()
-                    require(lowerCased.all { it in 'a'..'z' || it == '.' || it == '-' || it.isDigit() })
+                    val substr = substring(startIndex, index)
+                    require(substr.all { it.isCorrectUrlSymbol() })
 
-                    parts.push(lowerCased)
+                    parts.push(substr.lowercase())
 
                     index++
                     startIndex = index
@@ -227,31 +218,22 @@ class DomainMatcher private constructor(
                 if (++index < length) c = get(index) else break
             }
 
-            val lowerCased = substring(startIndex, index).lowerCased()
-            require(lowerCased.all { it in 'a'..'z' || it == '.' || it == '-' || it.isDigit() })
+            val substr = substring(startIndex, index)
+            require(substr.all { it.isCorrectUrlSymbol() })
 
-            parts.push(lowerCased)
+            parts.push(substr.lowercase())
 
             return parts
         }
 
-        private val specialCharToCode = mapOf(
-            '-' to 25,
-        )
+        private fun Char.isCorrectUrlSymbol(): Boolean =
+            this in 'a'..'z' || this == '.' || isDigit() || this == '-' || this in 'A'..'Z'
 
-        private fun getCharsMapCodeBySymbol(c: Char): Int =
-            if (c in 'a'..'z') (c.code - 'a'.code) else specialCharToCode.getValue(c)
+        private val specialCharToCode = mapOf('-' to 25)
 
-        @JvmInline
-        value class LowCaseString private constructor(
-            private val lowerCaseValue: String
-        ) : CharSequence by lowerCaseValue {
-
-            override fun toString() = lowerCaseValue
-
-            companion object {
-                internal fun String.lowerCased() = LowCaseString(lowercase())
-            }
+        private fun getCharsMapCodeBySymbol(c: Char): Int = when (c) {
+            in 'a'..'z' -> (c.code - 'a'.code)
+            else -> specialCharToCode.getValue(c)
         }
 
         private class CharEntry(val arr: Array<CharEntry?>? = null)
