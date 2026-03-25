@@ -18,7 +18,7 @@ class DomainMatcher private constructor(
     infix fun matched(url: String): Boolean {
         return when (cache) {
             null -> matched(url.urlPartsReversed())
-            else -> matched(cache[url] ?: url.urlPartsReversed().also { cache[url] = it })
+            else -> cache[url] ?: matched(url.urlPartsReversed()).also { cache[url] = it }
         }
     }
 
@@ -76,8 +76,8 @@ class DomainMatcher private constructor(
     }
 
     interface Cache {
-        operator fun get(url: String): List<String>?
-        operator fun set(url: String, value: List<String>)
+        operator fun get(url: String): Boolean?
+        operator fun set(url: String, flag: Boolean)
     }
 
     companion object {
@@ -149,7 +149,8 @@ class DomainMatcher private constructor(
                         }
                     }
                 },
-                charsMap = addCharToCharsMap(part.length - 1, part, matcher.charsMap)
+                charsMap = addCharToCharsMap(part.length - 1, part, matcher.charsMap),
+                cache = matcher.cache
             )
         }
 
@@ -164,8 +165,8 @@ class DomainMatcher private constructor(
                 charsMap[code] = charEntry
             }
 
-            val nextIndex = index - 1
-            if (nextIndex >= 0) {
+            if (index > 0) {
+                val nextIndex = index - 1
                 charsMap[code] = CharEntry(
                     arr = addCharToCharsMap(
                         index = nextIndex,
@@ -199,6 +200,7 @@ class DomainMatcher private constructor(
 
             if (c.isW() && get(startIndex + 1).isW() && get(startIndex + 2).isW() && get(startIndex + 3) == '.') {
                 startIndex += 4
+                c = get(startIndex)
             }
 
             val parts = LinkedList<String>()
